@@ -20,5 +20,5 @@ public interface Chat extends Remote {
     public void commandHelp() throws RemoteException;
     public void regiseter(ClientParticipant cp) throws RemoteException;
     public void deRegister(ClientParticipant cp) throws RemoteException;
-    
+    public void generateID()throws RemoteException;
 }

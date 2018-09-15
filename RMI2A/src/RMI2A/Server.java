@@ -11,6 +11,7 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  *
@@ -18,7 +19,7 @@ import java.util.ArrayList;
  */
 public class Server extends UnicastRemoteObject implements Chat {
     private ArrayList<ClientParticipant> participants;
-    
+    private HashMap<User,ClientParticipant> participantList;
     public Server(String[] args) throws RemoteException {
         super();
         participants = new ArrayList();
@@ -68,6 +69,11 @@ public class Server extends UnicastRemoteObject implements Chat {
     @Override
     public synchronized void deRegister(ClientParticipant cp) throws RemoteException {
         participants.remove(cp);
+    }
+
+    @Override
+    public void generateID() throws RemoteException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
 }

@@ -26,6 +26,7 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
         try {
             message = (Chat) Naming.lookup("rmi://" + args[0] + "/chat");
             message.regiseter(this);
+            
             connected = true;
             Scanner in = new Scanner(System.in);
             String inputText;
