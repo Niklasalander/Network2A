@@ -1,0 +1,6 @@
+1. javac *.java
+2. rmic Server
+3. rmic Client
+4. Replace .class files from /RMI2A to /RMI2A/RuntimeServer annd /RMI2A/RuntimeClient
+5. Run server from /RuntimeServer java Server
+6. Run client from /RuntimeClient java Client localhost
