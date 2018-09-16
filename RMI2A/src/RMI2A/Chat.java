@@ -15,10 +15,14 @@ import java.rmi.RemoteException;
  */
 public interface Chat extends Remote {
     public void doBroadcast(String message) throws RemoteException;
+    
     public void commandWho() throws RemoteException;
     public void commandChangeName(String name) throws RemoteException;
     public void commandHelp() throws RemoteException;
-    public void regiseter(ClientParticipant cp) throws RemoteException;
+    public void register(ClientParticipant cp) throws RemoteException;
     public void deRegister(ClientParticipant cp) throws RemoteException;
     public void generateID()throws RemoteException;
+
+    public void doBroadcast(int thisClientID, String inputText) throws RemoteException;
+    public boolean checkForExistingUser(int id) throws RemoteException;
 }

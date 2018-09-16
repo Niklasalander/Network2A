@@ -19,17 +19,19 @@ import java.util.Scanner;
  */
 public class Client extends UnicastRemoteObject implements ClientParticipant {
     private boolean connected;
-    
+    private int thisClientID;
     public Client(String[] args) throws RemoteException {
         super();
         Chat message = null;
         try {
+            System.out.println("hello");
             message = (Chat) Naming.lookup("rmi://" + args[0] + "/chat");
-            message.regiseter(this);
+            message.register(this); //add to list generate id
             
             connected = true;
             Scanner in = new Scanner(System.in);
             String inputText;
+            
             while(connected) {
                 inputText = in.nextLine();
                 if (inputText.charAt(0) == '/') {
@@ -41,7 +43,10 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
                     // send command
                 }
                 else {
-                    message.doBroadcast(inputText);
+                    if(inputText==null){
+                        System.out.println("is null");
+                    }
+                    message.doBroadcast(this.thisClientID,inputText);
                 }
             }
             
@@ -64,7 +69,8 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
     
     @Override
     public void pushMessage(String message) throws RemoteException{
-        System.out.println("FROM SERVER > " + message);
+      //  System.out.println("FROM " + this.thisClientID + " > " + message);
+        System.out.println(message);
     }
     
     public static void main(String[] args) {
@@ -73,6 +79,22 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
         } catch (RemoteException ex) {
             ex.printStackTrace();
         }
+    }
+
+    private int getIdFromServer(Scanner in) {
+       String tmp = in.nextLine();
+       System.out.println("tmp " +tmp);
+       tmp.replaceAll("\\D+","");
+       return Integer.parseInt(tmp); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public int registerID(int id) throws RemoteException {
+        System.out.println("ID : " + id + " registered");
+        this.thisClientID = id;
+        return id;
+        
+        //To change body of generated methods, choose Tools | Templates.
     }
     
 }

@@ -12,11 +12,16 @@
 public class User {
      private int id;
      private String nickname;
-     
+     private ClientParticipant cp;
      
      
 	public User(int id) {
-		super();
+	//	super();
+		this.id = id;
+	}
+        public User(int id,  ClientParticipant cp) {
+	//	super();
+                this.cp = cp;
 		this.id = id;
 	}
 	public int getId() {
@@ -31,4 +36,5 @@ public class User {
 	public void setNickname(String nickname) {
 		this.nickname = nickname;
 	}
+        
 }
