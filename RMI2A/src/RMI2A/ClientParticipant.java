@@ -15,4 +15,6 @@ import java.rmi.RemoteException;
  */
 public interface ClientParticipant extends Remote {
     public void pushMessage(String message) throws RemoteException;
+    public int registerID(int id)throws RemoteException;
+    public void obtainNickname(String newNickname)throws RemoteException;
 }
