@@ -36,5 +36,11 @@ public class User {
 	public void setNickname(String nickname) {
 		this.nickname = nickname;
 	}
+        public String IdOrNickName(){
+        if(this.getNickname()==null){
+            return Integer.toString(this.getId());
+        }
+        return this.getNickname();
+    }
         
 }

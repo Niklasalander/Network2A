@@ -25,4 +25,8 @@ public interface Chat extends Remote {
 
     public void doBroadcast(int thisClientID, String inputText) throws RemoteException;
     public boolean checkForExistingUser(int id) throws RemoteException;
+
+    public void commandHelp(int thisClientID) throws RemoteException;
+    public void commandChangeName(int id, String name) throws RemoteException;
+    public ClientParticipant selectUser(int id) throws RemoteException;
 }
