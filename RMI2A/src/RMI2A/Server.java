@@ -79,7 +79,7 @@ public class Server extends UnicastRemoteObject implements Chat {
             participantList.remove(u);
         }
     }
-
+   
     @Override
     public synchronized void deRegister(ClientParticipant cp) throws RemoteException {
         for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
