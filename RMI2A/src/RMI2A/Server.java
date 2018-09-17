@@ -70,10 +70,11 @@ public class Server extends UnicastRemoteObject implements Chat {
 
     @Override
     public synchronized void register(ClientParticipant cp) throws RemoteException {
-        User u = new User(this.idProvider++);
+        User u = new User(idProvider);
         participantList.put(u, cp);
         try {
             cp.registerID(idProvider);
+            idProvider++;
         } catch (RemoteException e) {
             System.out.println("Could not register client");
             participantList.remove(u);
@@ -95,6 +96,7 @@ public class Server extends UnicastRemoteObject implements Chat {
         if (checkForExistingUser(thisClientID)) {
             User u = getUser(thisClientID);
             for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
+                System.out.println("user: " + entry.getKey().IdOrNickName());
                 //System.out.println("entry " +entry.getKey() );
                 if (entry.getKey().getId() != thisClientID) {
                     try {
@@ -154,13 +156,10 @@ public class Server extends UnicastRemoteObject implements Chat {
             builder.append("Users: \n");
             ClientParticipant cp = null;
             for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
-                if (entry.getKey().getId() != thisClientID) {
-                    builder.append("[User " + entry.getKey().getId() + "]");
-                    builder.append(": " + entry.getKey().getNickname() + "\n");
-                }
-                else {
+                builder.append("[User " + entry.getKey().getId() + "]");
+                builder.append(": " + entry.getKey().getNickname() + "\n");
+                if (entry.getKey().getId() == thisClientID)
                     cp = entry.getValue();
-                }
             }
             if (cp != null) {
                 try {

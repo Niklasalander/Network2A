@@ -24,11 +24,11 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
 
     public Client(String[] args) throws RemoteException {
         super();
-        Chat message = null;
+        Chat chat = null;
         try {
-            System.out.println("hello");
-            message = (Chat) Naming.lookup("rmi://" + args[0] + "/chat");
-            message.register(this); //add to list generate id
+            System.out.println("Hello");
+            chat = (Chat) Naming.lookup("rmi://" + args[0] + "/chat");
+            chat.register(this); //add to list generate id
 
             connected = true;
             Scanner in = new Scanner(System.in);
@@ -39,48 +39,43 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
                 if (inputText.length() != 0) {
                     if (inputText.charAt(0) == '/') {
                         String[] received = inputText.split(" ");
-                        if (received[0].equals("/QUIT")) {
-                            message.deRegister(this);
+                        String command = received[0].trim().toUpperCase();
+                        if (command.equals("/QUIT")) {
+                            chat.deRegister(this);
                             connected = false;
                             break;
-                        } else if (received[0].toUpperCase().equals("/HELP")) {
-                            message.commandHelp(this.thisClientID);
-                        } else if (received[0].trim().toUpperCase().equals("/NICK")) {
-                            System.out.println("changing nickname");
-
+                        } else if (command.equals("/HELP")) {
+                            chat.commandHelp(this.thisClientID);
+                        } else if (command.equals("/NICK")) {
                             if (received.length <= 1) {
                                 System.out.println("error: you have inserted no argument");
                             } else {
-                                System.out.println(received[1]);
-                                message.commandChangeName(this.thisClientID, received[1]);
+                                String argument = received[1].trim().toUpperCase();
+                                chat.commandChangeName(this.thisClientID, argument);
                             }
-                        } else if (received[0].toUpperCase().equals("/WHO")) {
-                            message.commandWho(thisClientID);
+                        } else if (command.equals("/WHO")) {
+                            chat.commandWho(thisClientID);
                         }
                         else {
                             System.out.println("No command recognized");
                         }
-
-                        // send command
                     } else {
-                        message.doBroadcast(this.thisClientID, inputText);
+                        chat.doBroadcast(this.thisClientID, inputText);
                     }
-                } else {
-                    //   System.out.println("")
-                }
+                } 
             }
 
         } catch (NotBoundException ex) {
-            ex.printStackTrace();
+            System.out.println("Server is not running or you typed wrong name");
         } catch (MalformedURLException ex) {
-            ex.printStackTrace();
+            System.out.println("URL is not correct");
         } catch (RemoteException ex) {
-            ex.printStackTrace();
+            System.out.println("Server seems unresponsive you should probably /QUIT");
         } catch (Exception ex) {
-            ex.printStackTrace();
+            System.out.println("Something went wrong");
         } finally {
-            if (message != null) {
-                message.deRegister(this);
+            if (chat != null) {
+                chat.deRegister(this);
             }
             System.exit(0);
         }
@@ -88,7 +83,6 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
 
     @Override
     public void pushMessage(String message) throws RemoteException {
-        //  System.out.println("FROM " + this.thisClientID + " > " + message);
         System.out.println(message);
     }
 
@@ -96,7 +90,7 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
         try {
             new Client(args);
         } catch (RemoteException ex) {
-            ex.printStackTrace();
+            System.out.println("Main method caught Remote Exception");
         }
     }
 
@@ -104,23 +98,19 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
         String tmp = in.nextLine();
         System.out.println("tmp " + tmp);
         tmp.replaceAll("\\D+", "");
-        return Integer.parseInt(tmp); //To change body of generated methods, choose Tools | Templates.
+        return Integer.parseInt(tmp);
     }
 
     @Override
     public void registerID(int id) throws RemoteException {
         System.out.println("ID : " + id + " registered");
         this.thisClientID = id;
-
-        //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
     public void obtainNickname(String newNickname) throws RemoteException {
         this.nickname = newNickname;
         System.out.println("Obtained new name : " + this.nickname);
-
-        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     private String IdorNickName() {
@@ -132,7 +122,6 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
 
     @Override
     public void isClientAlive() throws RemoteException {
-        // Client resport to server
         // Do nothing
     }
 
