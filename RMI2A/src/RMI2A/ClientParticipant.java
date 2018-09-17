@@ -17,4 +17,5 @@ public interface ClientParticipant extends Remote {
     public void pushMessage(String message) throws RemoteException;
     public void registerID(int id)throws RemoteException;
     public void obtainNickname(String newNickname)throws RemoteException;
+    public void isClientAlive() throws RemoteException;
 }

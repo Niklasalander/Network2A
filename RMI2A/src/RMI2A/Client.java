@@ -130,4 +130,10 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
         return this.nickname;
     }
 
+    @Override
+    public void isClientAlive() throws RemoteException {
+        // Client resport to server
+        // Do nothing
+    }
+
 }

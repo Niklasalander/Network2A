@@ -12,6 +12,8 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -31,6 +33,7 @@ public class Server extends UnicastRemoteObject implements Chat {
         idProvider = 1;
         //   participantList = new HashMap<Integer,ClientParticipant>();
         participantList = new HashMap<User, ClientParticipant>();
+//        pollClients();
     }
 
     public static void main(String[] args) {
@@ -38,10 +41,33 @@ public class Server extends UnicastRemoteObject implements Chat {
             Server server = new Server(args);
             Naming.rebind("chat", server);
             System.out.println("Server running...");
+            server.pollClients();
+            
         } catch (MalformedURLException ex) {
             ex.printStackTrace();
         } catch (RemoteException ex) {
             ex.printStackTrace();
+        }
+    }
+    
+    public void pollClients() {
+        while (true) {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ex) {
+                System.out.println("could not sleep");
+            }
+            for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
+                ClientParticipant cp = null;
+                try {
+                    cp = entry.getValue();
+                    
+                    cp.isClientAlive();
+                } catch (RemoteException ex) {
+                    System.out.println("Client with id: " + entry.getKey().getId());
+                    participantList.remove(entry.getKey());
+                }
+            }
         }
     }
 
@@ -89,18 +115,24 @@ public class Server extends UnicastRemoteObject implements Chat {
 
     @Override
     public void commandChangeName(int clientId, String name) throws RemoteException {
-        User u;
-        if ((u = getUser(clientId)) != null) {
-            ClientParticipant cp = selectUser(clientId);
-            if (isNameAvailable(name)) {
-                u.setNickname(name);
-                cp.obtainNickname(name);
-            }
-            else {
-                cp.pushMessage("Name is occupied");
-            }
-        } 
+        try {
+            User u;
+            if ((u = getUser(clientId)) != null) {
+                ClientParticipant cp = selectUser(clientId);
+                if (isNameAvailable(name)) {
+                    u.setNickname(name);
+                    cp.obtainNickname(name);
+                }
+                else {
+                    cp.pushMessage("Name is occupied");
+                }
+            } 
+        } catch (RemoteException ex) {
+            System.out.println("Could not send message to Client");
+        }
     }
+    
+    
     
     @Override
     public void commandWho(int thisClientID) throws RemoteException {
