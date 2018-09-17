@@ -29,11 +29,8 @@ public class Server extends UnicastRemoteObject implements Chat {
 
     public Server(String[] args) throws RemoteException {
         super();
-        //  participants = new ArrayList();
         idProvider = 1;
-        //   participantList = new HashMap<Integer,ClientParticipant>();
         participantList = new HashMap<User, ClientParticipant>();
-//        pollClients();
     }
 
     public static void main(String[] args) {
@@ -73,29 +70,39 @@ public class Server extends UnicastRemoteObject implements Chat {
 
     @Override
     public synchronized void register(ClientParticipant cp) throws RemoteException {
-
-        // participantList.put(this.idProvider, cp);
-        participantList.put(new User(this.idProvider), cp);
-        cp.registerID(idProvider);
-        idProvider++;
-        /* cp.registerID(idProvider);
-        participants.add(cp);
-        this.idProvider++;*/
+        User u = new User(this.idProvider++);
+        participantList.put(u, cp);
+        try {
+            cp.registerID(idProvider);
+        } catch (RemoteException e) {
+            System.out.println("Could not register client");
+            participantList.remove(u);
+        }
     }
 
     @Override
     public synchronized void deRegister(ClientParticipant cp) throws RemoteException {
-        participantList.remove(cp);
+        for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
+            if (entry.getValue() == cp) {
+                participantList.remove(entry.getKey());
+                break;
+            }
+        }
     }
 
     @Override
-    public void doBroadcast(int thisClientID, String message) throws RemoteException {
+    public synchronized void doBroadcast(int thisClientID, String message) throws RemoteException {
         if (checkForExistingUser(thisClientID)) {
             User u = getUser(thisClientID);
             for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
                 //System.out.println("entry " +entry.getKey() );
                 if (entry.getKey().getId() != thisClientID) {
-                    entry.getValue().pushMessage("From " + u.IdOrNickName() + " > " + message);
+                    try {
+                        entry.getValue().pushMessage("From " + u.IdOrNickName() + " > " + message);
+                    } catch (RemoteException ex) {
+                        System.out.println("Cannot reach user: " + entry.getKey().getId() + ". Removing client");
+                        participantList.remove(entry.getKey());
+                    }
                 }
             }
         }
@@ -109,12 +116,17 @@ public class Server extends UnicastRemoteObject implements Chat {
                 + "[4]'help: provides list of commands";//To change body of generated methods, choose Tools | Templates.
         ClientParticipant c;
         if ((c = selectUser(thisClientID)) != null) {
-            c.pushMessage(help);
+            try {
+                c.pushMessage(help);
+            } catch (RemoteException ex) {
+                System.out.println("Cannot reach user: " + thisClientID + ". Removing client");
+                participantList.remove(getUser(thisClientID));
+            }
         }
     }
 
     @Override
-    public void commandChangeName(int clientId, String name) throws RemoteException {
+    public synchronized void commandChangeName(int clientId, String name) throws RemoteException {
         try {
             User u;
             if ((u = getUser(clientId)) != null) {
@@ -128,14 +140,15 @@ public class Server extends UnicastRemoteObject implements Chat {
                 }
             } 
         } catch (RemoteException ex) {
-            System.out.println("Could not send message to Client");
+            System.out.println("Cannot reach user: " + clientId + ". Removing client");
+            participantList.remove(getUser(clientId));
         }
     }
     
     
     
     @Override
-    public void commandWho(int thisClientID) throws RemoteException {
+    public synchronized void commandWho(int thisClientID) throws RemoteException {
         if (checkForExistingUser(thisClientID)) {
             StringBuilder builder = new StringBuilder();
             builder.append("Users: \n");
@@ -149,12 +162,18 @@ public class Server extends UnicastRemoteObject implements Chat {
                     cp = entry.getValue();
                 }
             }
-            if (cp != null)
-                cp.pushMessage(builder.toString());
+            if (cp != null) {
+                try {
+                    cp.pushMessage(builder.toString());
+                } catch (RemoteException ex) {
+                    System.out.println("Cannot reach user: " + thisClientID + ". Removing client");
+                    participantList.remove(getUser(thisClientID));
+                }
+            }
         }
     }
-
-    private boolean checkForExistingUser(int id) {
+    
+    private synchronized boolean checkForExistingUser(int id) {
         for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
             if (entry.getKey().getId() == id) {
                 return true;
@@ -163,7 +182,7 @@ public class Server extends UnicastRemoteObject implements Chat {
         return false;
     }
 
-    public ClientParticipant selectUser(int id) throws RemoteException {
+    public synchronized ClientParticipant selectUser(int id) throws RemoteException {
         for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
             if (entry.getKey().getId() == id) {
                 return entry.getValue();
@@ -172,7 +191,7 @@ public class Server extends UnicastRemoteObject implements Chat {
         return null;
     }
 
-    private User getUser(int id) {
+    private synchronized User getUser(int id) {
         for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
             if (entry.getKey().getId() == id) {
                 return entry.getKey();
@@ -181,7 +200,7 @@ public class Server extends UnicastRemoteObject implements Chat {
         return null;
     }
 
-    private boolean isNameAvailable(String name) {
+    private synchronized boolean isNameAvailable(String name) {
         for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
             String tmp = entry.getKey().getNickname();
             if (tmp != null) {
