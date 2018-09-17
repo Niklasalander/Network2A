@@ -62,7 +62,7 @@ public class Server extends UnicastRemoteObject implements Chat {
                     cp.isClientAlive();
                 } catch (RemoteException ex) {
                     System.out.println("Client with id: " + entry.getKey().getId());
-                    participantList.remove(entry.getKey());
+                    Forcederegister(cp);
                 }
             }
         }
@@ -80,7 +80,7 @@ public class Server extends UnicastRemoteObject implements Chat {
             participantList.remove(u);
         }
     }
-
+   
     @Override
     public synchronized void deRegister(ClientParticipant cp) throws RemoteException {
         for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
@@ -210,6 +210,15 @@ public class Server extends UnicastRemoteObject implements Chat {
 
         }
         return true;
+    }
+
+    private void Forcederegister(ClientParticipant cp) {
+        try {
+            deRegister(cp);
+            // throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        } catch (RemoteException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
 
