@@ -10,22 +10,22 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
  * @author Niklas
  */
 public class Server extends UnicastRemoteObject implements Chat {
-    //private ArrayList<ClientParticipant> participants;
-    // private Map<Integer,ClientParticipant> participantList;
     private Map<User, ClientParticipant> participantList;
-    // private ArrayList<User> participants;
 
     private int idProvider;
+    
+    private synchronized Map<User, ClientParticipant> getParticipantList(){
+        return participantList;
+    }
 
     public Server(String[] args) throws RemoteException {
         super();
@@ -41,72 +41,86 @@ public class Server extends UnicastRemoteObject implements Chat {
             server.pollClients();
             
         } catch (MalformedURLException ex) {
-            ex.printStackTrace();
+            System.out.println("URL is not acceptable");
         } catch (RemoteException ex) {
-            ex.printStackTrace();
-        }
+            System.out.println("Could not start server, probably start RMI registry ");
+        } 
     }
     
     public void pollClients() {
         while (true) {
             try {
                 Thread.sleep(5000);
+;               removeDeadClients();
+            
             } catch (InterruptedException ex) {
-                System.out.println("could not sleep");
-            }
-            for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
-                ClientParticipant cp = null;
-                try {
-                    cp = entry.getValue();
-                    
-                    cp.isClientAlive();
-                } catch (RemoteException ex) {
-                    System.out.println("Client with id: " + entry.getKey().getId());
-                    Forcederegister(cp);
-                }
+                System.out.println("Could not poll Clients");
+            } 
+        }
+    }
+    
+    private synchronized void removeDeadClients() {
+        ArrayList<User> toBeRemoved = new ArrayList<>();
+        for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
+            ClientParticipant cp = null;
+            try {
+                cp = entry.getValue();
+                cp.isClientAlive();
+            } catch (RemoteException ex) {
+                System.out.println("Client with id: " + entry.getKey().getId() + " is not alive");
+                toBeRemoved.add(entry.getKey());
             }
         }
+        for (User u : toBeRemoved) 
+            getParticipantList().remove(u);
     }
 
     @Override
     public synchronized void register(ClientParticipant cp) throws RemoteException {
         User u = new User(idProvider);
-        participantList.put(u, cp);
+        
+        getParticipantList().put(u, cp);
         try {
             cp.registerID(idProvider);
             idProvider++;
         } catch (RemoteException e) {
             System.out.println("Could not register client");
-            participantList.remove(u);
+            getParticipantList().remove(u);
         }
     }
    
     @Override
-    public synchronized void deRegister(ClientParticipant cp) throws RemoteException {
-        for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
-            if (entry.getValue() == cp) {
-                participantList.remove(entry.getKey());
-                break;
+    public synchronized void deRegister(int clientID) throws RemoteException {
+        User u = null;
+        for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
+            if (entry.getKey().getId() == clientID) {
+                u = entry.getKey();
+                System.out.println("User " + u.IdOrNickName() + " is getting Deregistererd");
             }
         }
+        if (u != null) 
+            getParticipantList().remove(u);
     }
 
     @Override
     public synchronized void doBroadcast(int thisClientID, String message) throws RemoteException {
+        ArrayList<User> toBeRemoved = new ArrayList<>();
         if (checkForExistingUser(thisClientID)) {
             User u = getUser(thisClientID);
-            for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
-                System.out.println("user: " + entry.getKey().IdOrNickName());
-                //System.out.println("entry " +entry.getKey() );
+            for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
                 if (entry.getKey().getId() != thisClientID) {
                     try {
                         entry.getValue().pushMessage("From " + u.IdOrNickName() + " > " + message);
+                        System.out.println("User: " + entry.getKey().IdOrNickName() + " sent a message");
                     } catch (RemoteException ex) {
                         System.out.println("Cannot reach user: " + entry.getKey().getId() + ". Removing client");
-                        participantList.remove(entry.getKey());
+                        toBeRemoved.add(entry.getKey());
+                    } catch (ConcurrentModificationException ex) {
                     }
                 }
             }
+            for (User cp : toBeRemoved) 
+                getParticipantList().remove(cp);
         }
     }
 
@@ -122,7 +136,7 @@ public class Server extends UnicastRemoteObject implements Chat {
                 c.pushMessage(help);
             } catch (RemoteException ex) {
                 System.out.println("Cannot reach user: " + thisClientID + ". Removing client");
-                participantList.remove(getUser(thisClientID));
+                getParticipantList().remove(getUser(thisClientID));
             }
         }
     }
@@ -143,7 +157,7 @@ public class Server extends UnicastRemoteObject implements Chat {
             } 
         } catch (RemoteException ex) {
             System.out.println("Cannot reach user: " + clientId + ". Removing client");
-            participantList.remove(getUser(clientId));
+            getParticipantList().remove(getUser(clientId));
         }
     }
     
@@ -155,7 +169,7 @@ public class Server extends UnicastRemoteObject implements Chat {
             StringBuilder builder = new StringBuilder();
             builder.append("Users: \n");
             ClientParticipant cp = null;
-            for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
+            for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
                 builder.append("[User " + entry.getKey().getId() + "]");
                 builder.append(": " + entry.getKey().getNickname() + "\n");
                 if (entry.getKey().getId() == thisClientID)
@@ -166,14 +180,14 @@ public class Server extends UnicastRemoteObject implements Chat {
                     cp.pushMessage(builder.toString());
                 } catch (RemoteException ex) {
                     System.out.println("Cannot reach user: " + thisClientID + ". Removing client");
-                    participantList.remove(getUser(thisClientID));
+                    getParticipantList().remove(getUser(thisClientID));
                 }
             }
         }
     }
     
     private synchronized boolean checkForExistingUser(int id) {
-        for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
+        for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
             if (entry.getKey().getId() == id) {
                 return true;
             }
@@ -182,7 +196,7 @@ public class Server extends UnicastRemoteObject implements Chat {
     }
 
     public synchronized ClientParticipant selectUser(int id) throws RemoteException {
-        for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
+        for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
             if (entry.getKey().getId() == id) {
                 return entry.getValue();
             }
@@ -191,7 +205,7 @@ public class Server extends UnicastRemoteObject implements Chat {
     }
 
     private synchronized User getUser(int id) {
-        for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
+        for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
             if (entry.getKey().getId() == id) {
                 return entry.getKey();
             }
@@ -200,27 +214,20 @@ public class Server extends UnicastRemoteObject implements Chat {
     }
 
     private synchronized boolean isNameAvailable(String name) {
-        for (Map.Entry<User, ClientParticipant> entry : participantList.entrySet()) {
+        for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
             String tmp = entry.getKey().getNickname();
             if (tmp != null) {
                 if (tmp.equals(name)) {
                     return false;
                 }
             }
-
         }
         return true;
     }
-
-    private void Forcederegister(ClientParticipant cp) {
-        try {
-            deRegister(cp);
-            // throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        } catch (RemoteException ex) {
-            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone(); //To change body of generated methods, choose Tools | Templates.
     }
-
-
 
 }

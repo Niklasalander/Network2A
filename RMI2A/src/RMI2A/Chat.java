@@ -15,7 +15,7 @@ import java.rmi.RemoteException;
  */
 public interface Chat extends Remote {
     public void register(ClientParticipant cp) throws RemoteException;
-    public void deRegister(ClientParticipant cp) throws RemoteException;
+    public void deRegister(int thisClientID) throws RemoteException;
 
     public void doBroadcast(int thisClientID, String inputText) throws RemoteException;
 

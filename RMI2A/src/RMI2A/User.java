@@ -11,7 +11,7 @@
  */
 public class User {
      private int id;
-     private String nickname;
+     private String nickname = "";
      private ClientParticipant cp;
      
      
@@ -37,7 +37,7 @@ public class User {
 		this.nickname = nickname;
 	}
         public String IdOrNickName(){
-        if(this.getNickname()==null){
+        if(this.getNickname()== ""){
             return Integer.toString(this.getId());
         }
         return this.getNickname();

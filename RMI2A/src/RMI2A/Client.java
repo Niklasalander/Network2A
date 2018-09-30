@@ -10,6 +10,7 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 /**
@@ -41,7 +42,7 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
                         String[] received = inputText.split(" ");
                         String command = received[0].trim().toUpperCase();
                         if (command.equals("/QUIT")) {
-                            chat.deRegister(this);
+                            chat.deRegister(this.thisClientID);
                             connected = false;
                             break;
                         } else if (command.equals("/HELP")) {
@@ -71,11 +72,13 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
             System.out.println("URL is not correct");
         } catch (RemoteException ex) {
             System.out.println("Server seems unresponsive you should probably /QUIT");
+        } catch (NoSuchElementException ex) {
         } catch (Exception ex) {
             System.out.println("Something went wrong");
+            ex.printStackTrace();
         } finally {
             if (chat != null) {
-                chat.deRegister(this);
+                chat.deRegister(this.thisClientID);
             }
             System.exit(0);
         }
