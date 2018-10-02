@@ -6,12 +6,14 @@
  * and open the template in the editor.
  */
 import java.net.MalformedURLException;
+import java.rmi.ConnectException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
+import java.util.Timer;
 
 /**
  *
@@ -19,10 +21,10 @@ import java.util.Scanner;
  */
 public class Client extends UnicastRemoteObject implements ClientParticipant {
 
-    private boolean connected;
+    private static boolean connected;
     private int thisClientID;
     private String nickname;
-
+    private Timer responseTimer;
     public Client(String[] args) throws RemoteException {
         super();
         Chat chat = null;
@@ -30,12 +32,16 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
             System.out.println("Hello");
             chat = (Chat) Naming.lookup("rmi://" + args[0] + "/chat");
             chat.register(this); //add to list generate id
-
+            
             connected = true;
+            responseTimer = new Timer();
+           
+            
             Scanner in = new Scanner(System.in);
             String inputText;
-
+            responseTimer.scheduleAtFixedRate(new ServerResponseTimeout(chat,this.thisClientID,this), 3500, 8000);
             while (connected) {
+                
                 inputText = in.nextLine();
                 if (inputText.length() != 0) {
                     if (inputText.charAt(0) == '/') {
@@ -65,10 +71,12 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
                     }
                 } 
             }
-
+        
         } catch (NotBoundException ex) {
             System.out.println("Server is not running or you typed wrong name");
-        } catch (MalformedURLException ex) {
+        }
+        
+        catch (MalformedURLException ex) {
             System.out.println("URL is not correct");
         } catch (RemoteException ex) {
             System.out.println("Server seems unresponsive you should probably /QUIT");
@@ -77,13 +85,18 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
             System.out.println("Something went wrong");
             ex.printStackTrace();
         } finally {
+           
             if (chat != null) {
                 chat.deRegister(this.thisClientID);
             }
+            
             System.exit(0);
         }
     }
-
+     
+    public void disConnected(){
+        this.connected = false;
+    }
     @Override
     public void pushMessage(String message) throws RemoteException {
         System.out.println(message);
@@ -94,6 +107,7 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
             new Client(args);
         } catch (RemoteException ex) {
             System.out.println("Main method caught Remote Exception");
+            System.exit(1);
         }
     }
 
@@ -127,5 +141,6 @@ public class Client extends UnicastRemoteObject implements ClientParticipant {
     public void isClientAlive() throws RemoteException {
         // Do nothing
     }
+
 
 }

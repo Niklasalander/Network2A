@@ -123,6 +123,7 @@ public class Server extends UnicastRemoteObject implements Chat {
                 getParticipantList().remove(cp);
         }
     }
+    
 
     @Override
     public void commandHelp(int thisClientID) throws RemoteException {
@@ -228,6 +229,17 @@ public class Server extends UnicastRemoteObject implements Chat {
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone(); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public synchronized void doTimeOut(int thisClientID) throws RemoteException {
+         //To change body of generated methods, choose Tools | Templates.
+         ClientParticipant cp = null;
+          if(checkForExistingUser(thisClientID)){
+             cp= selectUser(thisClientID);
+             cp.isClientAlive();
+         }
+         
     }
 
 }

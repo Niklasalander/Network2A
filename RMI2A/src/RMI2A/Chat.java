@@ -22,4 +22,6 @@ public interface Chat extends Remote {
     public void commandHelp(int thisClientID) throws RemoteException;
     public void commandChangeName(int thisClientID, String name) throws RemoteException;
     public void commandWho(int thisClientID) throws RemoteException;
+    public void doTimeOut(int thisClientID) throws RemoteException;
+   // public void TryTimeOut(int thisClientID) throws RemoteException;
 }
