@@ -7,6 +7,7 @@
  */
 import java.net.MalformedURLException;
 import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
@@ -44,15 +45,21 @@ public class Server extends UnicastRemoteObject implements Chat {
             System.out.println("URL is not acceptable");
         } catch (RemoteException ex) {
             System.out.println("Could not start server, probably start RMI registry ");
-        } 
+        } finally {
+            try {
+                Naming.unbind("chat");
+            } catch (NotBoundException ex) {
+            } catch (RemoteException ex) {
+            } catch (MalformedURLException ex) {
+            }
+        }
     }
     
     public void pollClients() {
         while (true) {
             try {
                 Thread.sleep(5000);
-;               removeDeadClients();
-            
+                removeDeadClients();
             } catch (InterruptedException ex) {
                 System.out.println("Could not poll Clients");
             } 
@@ -95,7 +102,7 @@ public class Server extends UnicastRemoteObject implements Chat {
         for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
             if (entry.getKey().getId() == clientID) {
                 u = entry.getKey();
-                System.out.println("User " + u.IdOrNickName() + " is getting Deregistererd");
+                System.out.println("[User " + u.getId() + "]: " + u.getNickname() + " is getting Deregistererd");
             }
         }
         if (u != null) 
@@ -108,15 +115,12 @@ public class Server extends UnicastRemoteObject implements Chat {
         if (checkForExistingUser(thisClientID)) {
             User u = getUser(thisClientID);
             for (Map.Entry<User, ClientParticipant> entry : getParticipantList().entrySet()) {
-                if (entry.getKey().getId() != thisClientID) {
-                    try {
-                        entry.getValue().pushMessage("From " + u.IdOrNickName() + " > " + message);
-                        System.out.println("User: " + entry.getKey().IdOrNickName() + " sent a message");
-                    } catch (RemoteException ex) {
-                        System.out.println("Cannot reach user: " + entry.getKey().getId() + ". Removing client");
-                        toBeRemoved.add(entry.getKey());
-                    } catch (ConcurrentModificationException ex) {
-                    }
+                try {
+                    entry.getValue().pushMessage("From " + u.IdOrNickName() + " > " + message);
+                } catch (RemoteException ex) {
+                    System.out.println("Cannot reach user: " + entry.getKey().getId() + ". Removing client");
+                    toBeRemoved.add(entry.getKey());
+                } catch (ConcurrentModificationException ex) {
                 }
             }
             for (User cp : toBeRemoved) 
@@ -161,8 +165,6 @@ public class Server extends UnicastRemoteObject implements Chat {
             getParticipantList().remove(getUser(clientId));
         }
     }
-    
-    
     
     @Override
     public synchronized void commandWho(int thisClientID) throws RemoteException {
@@ -228,18 +230,12 @@ public class Server extends UnicastRemoteObject implements Chat {
     
     @Override
     public Object clone() throws CloneNotSupportedException {
-        return super.clone(); //To change body of generated methods, choose Tools | Templates.
+        return super.clone(); 
     }
 
     @Override
     public synchronized void doTimeOut(int thisClientID) throws RemoteException {
-         //To change body of generated methods, choose Tools | Templates.
-         ClientParticipant cp = null;
-          if(checkForExistingUser(thisClientID)){
-             cp= selectUser(thisClientID);
-             cp.isClientAlive();
-         }
-         
+        // do nothing
     }
 
 }

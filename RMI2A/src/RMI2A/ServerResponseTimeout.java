@@ -5,11 +5,8 @@
  */
 //package RMI2A;
 
-import java.rmi.ConnectException;
 import java.rmi.RemoteException;
 import java.util.TimerTask;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -30,23 +27,18 @@ public class ServerResponseTimeout extends TimerTask {
     @Override
     public void run() {
         try {
-            
-           chat.doTimeOut(thisID);
-          
+            chat.doTimeOut(thisID);
         } catch (RemoteException ex) {
             System.out.println("We lost connection with the server, server likely has crashed... ");
+            System.out.println("Press Enter to exit");
             this.cancel();
-            
         }
-       }
+    }
 
     @Override
     public boolean cancel() {
         this.client.disConnected();
         return super.cancel(); //To change body of generated methods, choose Tools | Templates.
     }
-
-    
-    
     
 }

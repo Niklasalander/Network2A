@@ -16,11 +16,9 @@ public class User {
      
      
 	public User(int id) {
-	//	super();
 		this.id = id;
 	}
         public User(int id,  ClientParticipant cp) {
-	//	super();
                 this.cp = cp;
 		this.id = id;
 	}
